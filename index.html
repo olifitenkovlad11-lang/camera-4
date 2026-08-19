@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<meta http-equiv="Cache-Control" content="no-store"><meta name="version" content="CAMERA-SIZES-SMALL-TOP-PHOTO-THUMB-FLIP-V18"><title>QR Camera</title>
+<style>
+:root{
+  --phone-w: min(100vw, 430px);
+  --phone-h: calc(var(--phone-w) * 1.7777778);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;background:#111;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif}
+
+#phone{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:var(--phone-w);height:min(100vh,var(--phone-h));
+  min-height:0;max-height:100vh;
+  background:#000;overflow:hidden;
+}
+@media(min-width:600px){
+  #phone{width:430px;height:932px;min-height:0;border-radius:34px;
+    box-shadow:0 0 0 1px #333,0 25px 80px rgba(0,0,0,.55)}
+}
+#video,#fallback{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  background:#000;
+  z-index:0;
+}
+#video{display:none}
+#fallback{display:block;background:#000}
+
+.black-top{position:absolute;z-index:2;left:0;right:0;top:0;height:13.80%;background:#000}
+.black-bottom{position:absolute;z-index:2;left:0;right:0;bottom:0;height:24.2%;background:#000}
+
+
+/* Top Camera controls: independent elements, no overlap. */
+.heif{
+  position:absolute;z-index:20;left:5.0%;top:6.0%;
+  width:72px;height:42px;display:block;
+  object-fit:fill;
+  border:2px solid #000;
+  border-radius:999px;
+  box-sizing:border-box;
+}
+.controls{
+  position:absolute;z-index:20;right:5.0%;top:6.0%;
+  width:122px;height:42px;display:block;
+  object-fit:fill;
+}
+
+/* Zoom row sits between preview and lower controls. */
+.zoom{position:absolute;z-index:20;left:50%;bottom:26.6%;transform:translateX(-50%);
+  height:40px;display:flex;align-items:center;gap:18px;color:#fff;font-size:15px;line-height:1}
+.zoom .active{width:40px;height:40px;border-radius:50%;background:rgba(53,53,56,.96);
+  display:flex;align-items:center;justify-content:center;font-size:14px}
+.zoom .active b{color:#ffdf00;font-weight:500}
+
+/* Shutter uses the supplied iPhone-style photo as a separate asset. */
+.shutter{position:absolute;z-index:20;left:50%;bottom:13.5%;transform:translateX(-50%);
+  width:72px;height:72px;border:0;background:transparent;padding:0;cursor:pointer;
+  border-radius:50%;overflow:hidden;display:block}
+.shutter img{width:100%;height:100%;display:block;object-fit:fill}
+.shutter:active{transform:translateX(-50%) scale(.96)}
+
+/* Video/Photo selector uses its own supplied photo, independent from shutter. */
+.mode{position:absolute;z-index:20;left:50%;bottom:5.2%;
+  transform:translateX(-50%);width:146px;height:48px;
+  border:0;border-radius:22px;background:transparent;padding:0;overflow:hidden;display:block}
+.mode img{width:100%;height:100%;object-fit:fill;display:block}
+
+/* Photo 2 thumbnail, exactly one small circular item at bottom-left. */
+.thumb{position:absolute;z-index:22;left:7.5%;bottom:5.0%;width:48px;height:48px;
+  border-radius:50%;overflow:hidden;border:1px solid rgba(255,255,255,.22);background:#222}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* Camera flip control, same baseline as the mode selector. */
+.flip{position:absolute;z-index:22;right:6.0%;bottom:5.0%;width:54px;height:54px;
+  border:0;border-radius:50%;background:rgba(40,40,42,.97);padding:0;overflow:hidden;cursor:pointer}
+.flip img{width:100%;height:100%;object-fit:cover;object-position:center}
+
+.home{position:absolute;z-index:25;left:50%;bottom:.55%;transform:translateX(-50%);
+  width:120px;height:5px;border-radius:5px;background:#fff}
+
+#permission{
+  position:absolute;z-index:30;left:50%;top:50%;transform:translate(-50%,-50%);
+  padding:12px 18px;border-radius:15px;background:rgba(0,0,0,.72);
+  color:#fff;font-size:14px;text-align:center;max-width:82%;
+  display:none;
+}
+</style>
+</head>
+<body>
+<div id="phone">
+  <div id="fallback"></div>
+  <video id="video" autoplay playsinline muted></video>
+
+  <div class="black-top"></div>
+  <div class="black-bottom"></div>
+
+  <img class="heif" src="assets/heif24_clean.png" alt="HEIF 24">
+  <img class="controls" src="assets/controls_clean.png" alt="Управление камерой">
+
+  <div class="zoom">
+    <span>0,5</span>
+    <span class="active">1<b>×</b></span>
+    <span>2</span>
+  </div>
+
+  <button id="shutter" class="shutter" aria-label="Сканировать QR">
+    <img src="assets/shutter_photo.jpeg" alt="Кнопка фото">
+  </button>
+
+  <div class="mode">
+    <img src="assets/mode_photo.jpeg?v=14" alt="ВИДЕО ФОТО">
+  </div>
+
+  <div class="thumb">
+    <img src="assets/photo_thumbnail_user.jpg" alt="Фото 2">
+  </div>
+
+  <button id="flip" class="flip" aria-label="Переключить камеру">
+    <img src="assets/flip_photo3.jpg" alt="">
+  </button>
+
+  <div class="home"></div>
+  <div id="permission">Разрешите доступ к камере для сканирования QR-кода</div>
+</div>
+
+<canvas id="scan" hidden></canvas>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+const TARGET_URL="https://olifitenkovlad11-lang.github.io/imessage-demo16/";
+const video=document.getElementById("video");
+const fallback=document.getElementById("fallback");
+const canvas=document.getElementById("scan");
+const ctx=canvas.getContext("2d",{willReadFrequently:true});
+let stream=null, facing="environment", redirecting=false;
+
+async function startCamera(){
+  try{
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:facing,width:{ideal:1920},height:{ideal:1080}},
+      audio:false
+    });
+    video.srcObject=stream;
+    await video.play();
+    video.style.display="block";
+    fallback.style.display="none";
+    requestAnimationFrame(scan);
+  }catch(e){
+    video.style.display="none";
+    fallback.style.display="block";
+  }
+}
+function scan(){
+  if(redirecting)return;
+  if(video.readyState>=2 && video.videoWidth){
+    const max=900, scale=Math.min(1,max/video.videoWidth);
+    canvas.width=Math.round(video.videoWidth*scale);
+    canvas.height=Math.round(video.videoHeight*scale);
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    try{
+      const d=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const qr=window.jsQR && jsQR(d.data,d.width,d.height,{inversionAttempts:"attemptBoth"});
+      if(qr){
+        redirecting=true;
+        window.location.href=TARGET_URL;
+        return;
+      }
+    }catch(e){}
+  }
+  requestAnimationFrame(scan);
+}
+document.getElementById("flip").addEventListener("click",()=>{
+  facing=facing==="environment"?"user":"environment";
+  startCamera();
+});
+document.getElementById("shutter").addEventListener("click",()=>scan());
+window.addEventListener("load",startCamera);
+</script>
+</body>
+</html>
